@@ -1,0 +1,60 @@
+package com.example.bayojidaichat
+
+import android.os.Bundle
+import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
+import com.android.volley.Request
+import com.android.volley.toolbox.JsonObjectRequest
+import com.android.volley.toolbox.Volley
+import org.json.JSONObject
+
+class MainActivity : AppCompatActivity() {
+    private val API_URL = "https://src-4-a535.onrender.com/chat" // তোমার backend
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        val chatBox = findViewById<LinearLayout>(R.id.chatBox)
+        val messageInput = findViewById<EditText>(R.id.messageInput)
+        val sendBtn = findViewById<Button>(R.id.sendBtn)
+
+        val queue = Volley.newRequestQueue(this)
+
+        sendBtn.setOnClickListener {
+            val message = messageInput.text.toString().trim()
+            if (message.isEmpty()) return@setOnClickListener
+
+            appendMessage(chatBox, "You", message)
+            messageInput.text.clear()
+
+            val jsonBody = JSONObject()
+            jsonBody.put("username", "free_user")
+            jsonBody.put("message", message)
+
+            val request = JsonObjectRequest(
+                Request.Method.POST, API_URL, jsonBody,
+                { response ->
+                    if (response.has("reply")) {
+                        appendMessage(chatBox, "AI", response.getString("reply"))
+                    } else if (response.has("error")) {
+                        appendMessage(chatBox, "System", response.getString("error"))
+                    }
+                },
+                { error ->
+                    appendMessage(chatBox, "System", "Error connecting to backend")
+                }
+            )
+            queue.add(request)
+        }
+    }
+
+    private fun appendMessage(chatBox: LinearLayout, sender: String, text: String) {
+        val tv = TextView(this)
+        tv.text = "$sender: $text"
+        chatBox.addView(tv)
+    }
+}
