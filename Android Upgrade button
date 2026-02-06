@@ -1,0 +1,4 @@
+upgradeBtn.setOnClickListener {
+    Toast.makeText(this, "Payment coming soon 🚀", Toast.LENGTH_LONG).show()
+    // ভবিষ্যতে isPremium = true করা হবে
+}
