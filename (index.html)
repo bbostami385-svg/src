@@ -1,0 +1,23 @@
+<script>
+const API_BASE = "https://your-backend-url.onrender.com/api";
+
+function sendMessage() {
+  const input = document.getElementById("chat-input");
+  const message = input.value;
+  if (!message) return;
+
+  fetch(`${API_BASE}/ai/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message })
+  })
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById("chat-box").innerHTML += `
+      <div><b>You:</b> ${message}</div>
+      <div><b>AI:</b> ${data.reply}</div>
+    `;
+    input.value = "";
+  });
+}
+</script>
