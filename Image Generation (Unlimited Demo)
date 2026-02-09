@@ -1,0 +1,30 @@
+<!-- Image Generation Demo -->
+<section id="image-gen">
+  <h2>🖼️ AI Image Generation</h2>
+  <p>Create images from text prompts using AI.</p>
+
+  <input type="text" id="img-prompt" placeholder="Describe your image..." />
+  <button onclick="generateImage()">Generate Image</button>
+
+  <p style="color: green; margin-top: 10px;">
+    Unlimited Image Generation (Demo)
+  </p>
+
+  <div id="image-result" style="margin-top: 15px;"></div>
+</section>
+
+<script>
+  function generateImage() {
+    const prompt = document.getElementById("img-prompt").value;
+    if (!prompt) {
+      alert("Please enter an image prompt");
+      return;
+    }
+
+    // Demo placeholder image
+    document.getElementById("image-result").innerHTML = `
+      <p>Generated image for: <b>${prompt}</b></p>
+      <img src="https://via.placeholder.com/300" alt="AI Image Demo">
+    `;
+  }
+</script>
