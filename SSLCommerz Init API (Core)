@@ -1,0 +1,36 @@
+import express from "express";
+import axios from "axios";
+import cors from "cors";
+import dotenv from "dotenv";
+
+dotenv.config();
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+app.post("/pay", async (req, res) => {
+  const paymentData = {
+    store_id: process.env.STORE_ID,
+    store_passwd: process.env.STORE_PASS,
+    total_amount: req.body.amount,
+    currency: "BDT",
+    tran_id: "TXN_" + Date.now(),
+    success_url: "http://localhost:5000/success",
+    fail_url: "http://localhost:5000/fail",
+    cancel_url: "http://localhost:5000/cancel",
+    cus_name: "User",
+    cus_email: "user@email.com",
+    cus_add1: "Dhaka",
+    cus_city: "Dhaka",
+    cus_country: "Bangladesh",
+  };
+
+  const response = await axios.post(
+    "https://sandbox.sslcommerz.com/gwprocess/v4/api.php",
+    paymentData
+  );
+
+  res.send(response.data);
+});
+
+app.listen(5000, () => console.log("Server running"));
