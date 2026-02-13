@@ -1,5 +1,5 @@
 <script>
-const API_BASE = "https://your-backend-url.onrender.com/api";
+const API_BASE = "https://src-4-a535.onrender.com/api";
 
 function sendMessage() {
   const input = document.getElementById("chat-input");
