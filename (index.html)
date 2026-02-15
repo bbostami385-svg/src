@@ -38,3 +38,42 @@ function sendMessage() {
 
   firebase.initializeApp(firebaseConfig);
 </script>
+<script>
+  const auth = firebase.auth();
+
+  function signup() {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    auth.createUserWithEmailAndPassword(email, password)
+      .then(() => {
+        alert("Signup Successful ✅");
+      })
+      .catch(error => alert(error.message));
+  }
+
+  function login() {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    auth.signInWithEmailAndPassword(email, password)
+      .then(() => {
+        alert("Login Successful ✅");
+      })
+      .catch(error => alert(error.message));
+  }
+
+  function logout() {
+    auth.signOut();
+  }
+
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      document.getElementById("user-status").innerText =
+        "Logged in as: " + user.email;
+    } else {
+      document.getElementById("user-status").innerText =
+        "Not logged in";
+    }
+  });
+</script>
