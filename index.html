@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -42,7 +42,6 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 
 <script>
-  // 🔹 Firebase config (public) – GitHub safe
   const firebaseConfig = {
     apiKey: "AIzaSyBYpQsXTHmvq0bvBYF2zKUrxdMEDoEs7qw",
     authDomain: "bayojidaichat.firebaseapp.com",
@@ -55,44 +54,34 @@
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
 
-  // Signup
   function signup() {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
-
     auth.createUserWithEmailAndPassword(email, password)
       .then(() => alert("Signup Successful ✅"))
       .catch(err => alert(err.message));
   }
 
-  // Login
   function login() {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
-
     auth.signInWithEmailAndPassword(email, password)
       .then(() => alert("Login Successful ✅"))
       .catch(err => alert(err.message));
   }
 
-  // Logout
   function logout() {
     auth.signOut();
   }
 
-  // Auth state
   auth.onAuthStateChanged(user => {
     document.getElementById("user-status").innerText = user ? "Logged in as: " + user.email : "Not logged in";
   });
 
   // Chat
-  const API_BASE = "https://src-4-a535.onrender.com";
-
+  const API_BASE = "https://src-4-a535.onrender.com"; // demo backend
   async function sendMessage() {
-    if (!auth.currentUser) {
-      alert("Please login first ❌");
-      return;
-    }
+    if (!auth.currentUser) { alert("Please login first ❌"); return; }
 
     const input = document.getElementById("chat-input");
     const message = input.value;
