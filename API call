@@ -1,5 +1,0 @@
-axios.post(API_URL, {
-  username: "bayojid",
-  message,
-  isPremium
-});
