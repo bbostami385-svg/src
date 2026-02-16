@@ -1,20 +1,26 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Bayojid AI</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial; text-align: center; padding: 40px; background: #0f172a; color: white; }
+    input { padding: 8px; margin: 5px; width: 200px; }
+    button { padding: 8px 12px; margin: 5px; }
+    #chat-box { margin-top: 20px; text-align: left; width: 60%; margin-left: auto; margin-right: auto; background: #1e293b; padding: 10px; border-radius: 8px; }
+    #chat-box div { margin: 5px 0; }
+  </style>
 </head>
-
-<body style="font-family: Arial; text-align:center; padding:40px; background:#0f172a; color:white;">
+<body>
 
 <h2>Bayojid AI</h2>
 
-<!-- Login Section -->
+<!-- Login / Signup -->
 <div>
   <input type="email" id="email" placeholder="Email">
   <input type="password" id="password" placeholder="Password">
-  <br><br>
+  <br>
   <button onclick="signup()">Signup</button>
   <button onclick="login()">Login</button>
   <button onclick="logout()">Logout</button>
@@ -23,20 +29,20 @@
 
 <hr>
 
-<!-- Chat Section -->
+<!-- Chat -->
 <div>
   <input type="text" id="chat-input" placeholder="Ask something..." style="width:60%;">
   <button onclick="sendMessage()">Send</button>
 </div>
 
-<div id="chat-box" style="margin-top:20px;"></div>
+<div id="chat-box"></div>
 
-<!-- Firebase SDK (v8 simple version) -->
+<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 
 <script>
-  // 🔹 তোমার Firebase project config এখানে বসাও
+  // 🔹 Firebase config (public) – GitHub safe
   const firebaseConfig = {
     apiKey: "AIzaSyBYpQsXTHmvq0bvBYF2zKUrxdMEDoEs7qw",
     authDomain: "bayojidaichat.firebaseapp.com",
@@ -49,6 +55,7 @@
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
 
+  // Signup
   function signup() {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
@@ -58,6 +65,7 @@
       .catch(err => alert(err.message));
   }
 
+  // Login
   function login() {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
@@ -67,20 +75,17 @@
       .catch(err => alert(err.message));
   }
 
+  // Logout
   function logout() {
     auth.signOut();
   }
 
+  // Auth state
   auth.onAuthStateChanged(user => {
-    if (user) {
-      document.getElementById("user-status").innerText =
-        "Logged in as: " + user.email;
-    } else {
-      document.getElementById("user-status").innerText =
-        "Not logged in";
-    }
+    document.getElementById("user-status").innerText = user ? "Logged in as: " + user.email : "Not logged in";
   });
 
+  // Chat
   const API_BASE = "https://src-4-a535.onrender.com";
 
   async function sendMessage() {
@@ -93,18 +98,21 @@
     const message = input.value;
     if (!message) return;
 
-    const res = await fetch(`${API_BASE}/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message })
-    });
+    try {
+      const res = await fetch(`${API_BASE}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message })
+      });
+      const data = await res.json();
 
-    const data = await res.json();
-
-    document.getElementById("chat-box").innerHTML += `
-      <div><b>You:</b> ${message}</div>
-      <div><b>AI:</b> ${data.reply}</div>
-    `;
+      document.getElementById("chat-box").innerHTML += `
+        <div><b>You:</b> ${message}</div>
+        <div><b>AI:</b> ${data.reply}</div>
+      `;
+    } catch {
+      document.getElementById("chat-box").innerHTML += `<div><b>System:</b> Cannot connect to backend</div>`;
+    }
 
     input.value = "";
   }
