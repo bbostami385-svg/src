@@ -1,41 +1,67 @@
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
+// Firebase Setup
+const firebaseConfig = {
+  apiKey: "AIzaSyBYpQsXTHmvq0bvBYF2zKUrxdMEDoEs7qw",
+  authDomain: "bayojidaichat.firebaseapp.com",
+  projectId: "bayojidaichat",
+  storageBucket: "bayojidaichat.firebasestorage.app",
+  messagingSenderId: "982053349033",
+  appId: "1:982053349033:web:b89d9c88b4516293bfebb8"
+};
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
 
-// Server test route
-app.get("/", (req, res) => {
-  res.send("Bayojid AI Server is Running ✅");
+// Login/Signup
+function signup() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  auth.createUserWithEmailAndPassword(email, password)
+    .then(() => alert("Signup Successful ✅"))
+    .catch(err => alert(err.message));
+}
+
+function login() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  auth.signInWithEmailAndPassword(email, password)
+    .then(() => alert("Login Successful ✅"))
+    .catch(err => alert(err.message));
+}
+
+function logout() { auth.signOut(); }
+
+auth.onAuthStateChanged(user => {
+  document.getElementById("user-status").innerText = user ? "Logged in as: " + user.email : "Not logged in";
 });
 
-// Chat route (Demo mode)
-app.post("/chat", async (req, res) => {
+// Theme toggle
+function toggleTheme() {
+  document.body.classList.toggle("light");
+}
+
+// Chat
+const API_BASE = "https://src-4-a535.onrender.com"; // backend URL
+async function sendMessage() {
+  if (!auth.currentUser) { alert("Please login first ❌"); return; }
+
+  const input = document.getElementById("chat-input");
+  const message = input.value;
+  if (!message) return;
+
   try {
-    const message = req.body.message || "";
-
-    let reply;
-
-    if (message.toLowerCase().includes("hello")) {
-      reply = "Hello! আমি Bayojid AI 😊";
-    } else if (message.toLowerCase().includes("bangladesh")) {
-      reply = "বাংলাদেশ একটি সুন্দর দেশ 🇧🇩";
-    } else {
-      reply = "আমি এখন demo mode এ আছি। Premium এ গেলে full AI চালু হবে 🔥";
-    }
-
-    res.json({ reply });
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Something went wrong" });
+    const res = await fetch(`${API_BASE}/chat`, {
+      method: "POST",
+      headers: { "Content-Type":"application/json" },
+      body: JSON.stringify({ message, username: auth.currentUser.email })
+    });
+    const data = await res.json();
+    document.getElementById("chat-box").innerHTML += `
+      <div><b>You:</b> ${message}</div>
+      <div><b>AI:</b> ${data.reply}</div>
+    `;
+  } catch {
+    document.getElementById("chat-box").innerHTML += `<div><b>System:</b> Cannot connect to backend</div>`;
   }
-});
 
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
-});
+  input.value="";
+}
