@@ -1,0 +1,38 @@
+body {
+  font-family: Arial;
+  text-align: center;
+  padding: 40px;
+  background: #0f172a;
+  color: white;
+  transition: 0.3s;
+}
+body.light {
+  background: #f0f0f0;
+  color: #111;
+}
+input {
+  padding: 8px;
+  margin: 5px;
+  width: 200px;
+}
+button {
+  padding: 8px 12px;
+  margin: 5px;
+  cursor: pointer;
+}
+#chat-box {
+  margin-top: 20px;
+  text-align: left;
+  width: 80%;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  background: #1e293b;
+  padding: 10px;
+  border-radius: 8px;
+  height: 300px;
+  overflow-y: auto;
+}
+#chat-box div {
+  margin: 5px 0;
+}
