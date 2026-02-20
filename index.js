@@ -1,5 +1,8 @@
-// index.js - Bayojid AI Frontend (Final, Premium-ready)
+// ===============================
+// Bayojid AI - FINAL Frontend
+// ===============================
 
+// 🔹 Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyBYpQsXTHmvq0bvBYF2zKUrxdMEDoEs7qw",
   authDomain: "bayojidaichat.firebaseapp.com",
@@ -10,23 +13,30 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
+
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-let freeUsage = 3600; // 1 hour free demo in seconds
+// 🔹 Backend URL (Only change this if needed)
+const API_BASE = "https://src-4-a535.onrender.com";
 
-// Signup/Login/Logout
+// ===============================
+// 🔐 AUTH SECTION
+// ===============================
+
 function signup() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
+  const email = emailInput().value;
+  const password = passwordInput().value;
+
   auth.createUserWithEmailAndPassword(email, password)
     .then(() => alert("Signup Successful ✅"))
     .catch(err => alert(err.message));
 }
 
 function login() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
+  const email = emailInput().value;
+  const password = passwordInput().value;
+
   auth.signInWithEmailAndPassword(email, password)
     .then(() => alert("Login Successful ✅"))
     .catch(err => alert(err.message));
@@ -36,77 +46,133 @@ function logout() {
   auth.signOut();
 }
 
-auth.onAuthStateChanged(user => {
-  document.getElementById("user-status").innerText = user ? "Logged in as: " + user.email : "Not logged in";
+// ===============================
+// 👤 USER STATE
+// ===============================
 
-  if(user){
-    // Load previous chats
-    db.collection("chats")
-      .where("user", "==", user.email)
-      .orderBy("timestamp")
-      .onSnapshot(snapshot => {
-        const chatBox = document.getElementById("chat-box");
-        chatBox.innerHTML = "";
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          chatBox.innerHTML += `
-            <div><b>You:</b> ${data.message}</div>
-            <div><b>AI:</b> ${data.reply}</div>
-          `;
-        });
-        chatBox.scrollTop = chatBox.scrollHeight;
-      });
+auth.onAuthStateChanged(user => {
+  const status = document.getElementById("user-status");
+
+  if (user) {
+    status.innerText = "Logged in as: " + user.email;
+    loadUserData(user.email);
+  } else {
+    status.innerText = "Not logged in";
+    document.getElementById("chat-box").innerHTML = "";
   }
 });
 
-// Dark/Light mode
+// ===============================
+// 💾 LOAD USER DATA
+// ===============================
+
+async function loadUserData(email) {
+  const chatBox = document.getElementById("chat-box");
+  chatBox.innerHTML = "";
+
+  const snapshot = await db.collection("users").doc(email).get();
+
+  if (!snapshot.exists) {
+    // First time user
+    await db.collection("users").doc(email).set({
+      freeUsage: 3600,
+      premium: false
+    });
+    return;
+  }
+
+  // Load chats
+  db.collection("chats")
+    .where("user", "==", email)
+    .orderBy("timestamp")
+    .onSnapshot(snap => {
+      chatBox.innerHTML = "";
+      snap.forEach(doc => {
+        const data = doc.data();
+        chatBox.innerHTML += `
+          <div><b>You:</b> ${data.message}</div>
+          <div><b>AI:</b> ${data.reply}</div>
+        `;
+      });
+      chatBox.scrollTop = chatBox.scrollHeight;
+    });
+}
+
+// ===============================
+// 🌙 THEME TOGGLE
+// ===============================
+
 function toggleTheme() {
   document.body.classList.toggle("light");
 }
 
-// Chat send with Free usage & Premium-ready
-const API_BASE = "https://src-4-a535.onrender.com"; // demo backend
-async function sendMessage() {
-  if (!auth.currentUser) { alert("Please login first ❌"); return; }
+// ===============================
+// 💬 SEND MESSAGE
+// ===============================
 
-  // Check free usage
-  const premiumStatus = false; // replace with /premium-check later
-  if(!premiumStatus && freeUsage <= 0){
-    alert("Free usage time over! Upgrade to Premium 🔥");
+async function sendMessage() {
+
+  const user = auth.currentUser;
+  if (!user) {
+    alert("Please login first ❌");
     return;
   }
 
   const input = document.getElementById("chat-input");
   const message = input.value;
-  if(!message) return;
+  if (!message) return;
 
-  try{
+  const userDoc = await db.collection("users").doc(user.email).get();
+  const userData = userDoc.data();
+
+  if (!userData.premium && userData.freeUsage <= 0) {
+    alert("Free usage finished! Upgrade to Premium 🔥");
+    return;
+  }
+
+  try {
     const res = await fetch(`${API_BASE}/chat`, {
       method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({message, username: auth.currentUser.email})
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message,
+        username: user.email
+      })
     });
+
     const data = await res.json();
 
-    document.getElementById("chat-box").innerHTML += `
-      <div><b>You:</b> ${message}</div>
-      <div><b>AI:</b> ${data.reply}</div>
-    `;
-    document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
-
-    // Save chat to Firestore
+    // Save chat
     await db.collection("chats").add({
-      user: auth.currentUser.email,
-      message,
+      user: user.email,
+      message: message,
       reply: data.reply,
       timestamp: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    if(!premiumStatus) freeUsage -= 1; // 1 sec per message demo
-  }
-  catch{
-    document.getElementById("chat-box").innerHTML += `<div><b>System:</b> Cannot connect to backend</div>`;
+    // Reduce free usage
+    if (!userData.premium) {
+      await db.collection("users").doc(user.email).update({
+        freeUsage: userData.freeUsage - 1
+      });
+    }
+
+  } catch (err) {
+    document.getElementById("chat-box").innerHTML +=
+      `<div><b>System:</b> Cannot connect to backend</div>`;
   }
 
-  input.value="";
+  input.value = "";
+}
+
+// ===============================
+// 🔧 Helper
+// ===============================
+
+function emailInput() {
+  return document.getElementById("email");
+}
+
+function passwordInput() {
+  return document.getElementById("password");
 }
