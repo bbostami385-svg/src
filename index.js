@@ -1,11 +1,13 @@
 // =======================================
-// Bayojid AI - PREMIUM ROOM VERSION
+// Bayojid AI - ADMIN PANEL VERSION
 // =======================================
+
+const ADMIN_EMAIL = "admin@bayojid.com"; // CHANGE IF NEEDED
 
 const firebaseConfig = {
   apiKey: "AIzaSyBYpQsXTHmvq0bvBYF2zKUrxdMEDoEs7qw",
   authDomain: "bayojidaichat.firebaseapp.com",
-  projectId: "bayojidaichat.firebaseapp.com",
+  projectId: "bayojidaichat",
   storageBucket: "bayojidaichat.firebasestorage.app",
   messagingSenderId: "982053349033",
   appId: "1:982053349033:web:b89d9c88b4516293bfebb8"
@@ -40,51 +42,77 @@ function logout() {
 
 auth.onAuthStateChanged(async user => {
   if (user) {
+
     document.getElementById("user-status").innerText =
       "Logged in as: " + user.email;
 
-    // Create user doc if not exists
     const userRef = db.collection("users").doc(user.email);
     const snap = await userRef.get();
+
     if (!snap.exists) {
-      await userRef.set({
-        premium: false
-      });
+      await userRef.set({ premium: false });
+    }
+
+    if (user.email === ADMIN_EMAIL) {
+      loadAdminPanel();
     }
 
     joinRoom("global-room");
+
   } else {
-    document.getElementById("user-status").innerText = "Not logged in";
     document.getElementById("chat-box").innerHTML = "";
+    document.getElementById("admin-panel").innerHTML = "";
   }
 });
 
-// ================= CREATE ROOM =================
+// ================= ADMIN PANEL =================
+
+async function loadAdminPanel() {
+
+  const panel = document.getElementById("admin-panel");
+  panel.innerHTML = "<h3>Admin Panel</h3>";
+
+  const users = await db.collection("users").get();
+
+  users.forEach(doc => {
+    const data = doc.data();
+
+    panel.innerHTML += `
+      <div style="margin-bottom:5px;">
+        ${doc.id} | Premium: ${data.premium}
+        <button onclick="togglePremium('${doc.id}', ${data.premium})">
+          Toggle Premium
+        </button>
+      </div>
+    `;
+  });
+}
+
+async function togglePremium(email, currentStatus) {
+  await db.collection("users").doc(email).update({
+    premium: !currentStatus
+  });
+  loadAdminPanel();
+}
+
+// ================= ROOM SYSTEM =================
 
 async function createRoom() {
   if (!auth.currentUser) return alert("Login first ❌");
 
-  const roomId = prompt("Enter new Room ID:");
+  const roomId = prompt("Enter Room ID:");
   if (!roomId) return;
 
-  const isPremiumRoom = confirm("Make this a Premium Room?");
+  const isPremiumRoom = confirm("Premium Room?");
 
-  const roomRef = db.collection("rooms").doc(roomId);
-  const snap = await roomRef.get();
-
-  if (snap.exists) return alert("Room already exists!");
-
-  await roomRef.set({
+  await db.collection("rooms").doc(roomId).set({
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     createdBy: auth.currentUser.email,
     premium: isPremiumRoom
   });
 
-  alert("Room created ✅");
   joinRoom(roomId);
 }
-
-// ================= JOIN ROOM =================
 
 async function joinRoom(roomId) {
   if (!auth.currentUser) return;
@@ -92,17 +120,14 @@ async function joinRoom(roomId) {
   const roomRef = db.collection("rooms").doc(roomId);
   const snap = await roomRef.get();
 
-  if (!snap.exists) return alert("Room does not exist!");
+  if (!snap.exists) return alert("Room not found");
 
   const roomData = snap.data();
+  const userSnap = await db.collection("users")
+    .doc(auth.currentUser.email).get();
 
-  const userRef = db.collection("users").doc(auth.currentUser.email);
-  const userSnap = await userRef.get();
-  const userData = userSnap.data();
-
-  if (roomData.premium && !userData.premium) {
-    alert("This is a Premium Room 🔒 Upgrade required.");
-    return;
+  if (roomData.premium && !userSnap.data().premium) {
+    return alert("Premium room 🔒");
   }
 
   currentRoom = roomId;
@@ -148,32 +173,21 @@ async function sendMessage() {
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   });
 
-  try {
-    const res = await fetch(`${API_BASE}/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message })
-    });
+  const res = await fetch(`${API_BASE}/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message })
+  });
 
-    const data = await res.json();
+  const data = await res.json();
 
-    await roomRef.collection("messages").add({
-      sender: "Bayojid AI",
-      text: data.reply,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-  } catch {
-    console.log("Backend failed");
-  }
+  await roomRef.collection("messages").add({
+    sender: "Bayojid AI",
+    text: data.reply,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  });
 
   input.value = "";
-}
-
-// ================= THEME =================
-
-function toggleTheme() {
-  document.body.classList.toggle("light");
 }
 
 // ================= HELPERS =================
