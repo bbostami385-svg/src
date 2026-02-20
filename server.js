@@ -1,12 +1,18 @@
-// server.js - Bayojid AI Backend (Future-Ready)
+// server.js - Bayojid AI Backend (Demo + Future Real AI Ready)
 
 const express = require("express");
 const cors = require("cors");
-require("dotenv").config(); // Load .env for API keys etc.
+require("dotenv").config(); // Load .env
+const OpenAI = require("openai");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Initialize OpenAI (Future-ready)
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
 // Root route
 app.get("/", (req, res) => {
@@ -21,29 +27,32 @@ app.post("/chat", async (req, res) => {
     if (!message) return res.status(400).json({ error: "No message provided" });
 
     // -----------------------------
-    // TODO: Replace demo reply with real AI API call
-    // Example for OpenAI GPT:
-    // const reply = await openai.createChatCompletion({
-    //   model: "gpt-4",
-    //   messages: [{ role: "user", content: message }]
-    // });
-    // const aiReply = reply.data.choices[0].message.content;
-    // -----------------------------
-
     // Demo reply
-    const aiReply = `আমি এখন demo mode এ আছি। তুমি বলেছ: "${message}"`;
+    let aiReply = `Demo mode: তুমি বলেছ "${message}"`;
+    // -----------------------------
+    
+    // Uncomment below for Real AI GPT
+    /*
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: "You are Bayojid AI, a helpful assistant." },
+        { role: "user", content: message }
+      ]
+    });
+    aiReply = completion.choices[0].message.content;
+    */
 
     res.json({ reply: aiReply });
-  } catch (err) {
+  } catch(err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-// Optional: Premium check endpoint (future-ready)
+// Premium check endpoint (Future-ready)
 app.post("/premium-check", (req, res) => {
   const { username } = req.body;
-  // TODO: Implement real premium logic
   const isPremium = false; // Demo
   res.json({ username, isPremium });
 });
