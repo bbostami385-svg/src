@@ -1,8 +1,6 @@
 // =======================================
-// Bayojid AI - ADMIN PANEL VERSION
+// Bayojid AI - ROOM BASED ADMIN SYSTEM
 // =======================================
-
-createdBy = auth.currentUser.email
 
 const firebaseConfig = {
   apiKey: "AIzaSyBYpQsXTHmvq0bvBYF2zKUrxdMEDoEs7qw",
@@ -40,60 +38,15 @@ function logout() {
   auth.signOut();
 }
 
-auth.onAuthStateChanged(async user => {
+auth.onAuthStateChanged(user => {
   if (user) {
-
     document.getElementById("user-status").innerText =
       "Logged in as: " + user.email;
-
-    const userRef = db.collection("users").doc(user.email);
-    const snap = await userRef.get();
-
-    if (!snap.exists) {
-      await userRef.set({ premium: false });
-    }
-
-    if (user.email === ADMIN_EMAIL) {
-      loadAdminPanel();
-    }
-
-    joinRoom("global-room");
-
   } else {
     document.getElementById("chat-box").innerHTML = "";
     document.getElementById("admin-panel").innerHTML = "";
   }
 });
-
-// ================= ADMIN PANEL =================
-
-async function loadAdminPanel() {
-
-  const panel = document.getElementById("admin-panel");
-  panel.innerHTML = "<h3>Admin Panel</h3>";
-
-  const users = await db.collection("users").get();
-
-  users.forEach(doc => {
-    const data = doc.data();
-
-    panel.innerHTML += `
-      <div style="margin-bottom:5px;">
-        ${doc.id} | Premium: ${data.premium}
-        <button onclick="togglePremium('${doc.id}', ${data.premium})">
-          Toggle Premium
-        </button>
-      </div>
-    `;
-  });
-}
-
-async function togglePremium(email, currentStatus) {
-  await db.collection("users").doc(email).update({
-    premium: !currentStatus
-  });
-  loadAdminPanel();
-}
 
 // ================= ROOM SYSTEM =================
 
@@ -103,12 +56,10 @@ async function createRoom() {
   const roomId = prompt("Enter Room ID:");
   if (!roomId) return;
 
-  const isPremiumRoom = confirm("Premium Room?");
-
   await db.collection("rooms").doc(roomId).set({
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     createdBy: auth.currentUser.email,
-    premium: isPremiumRoom
+    premium: false
   });
 
   joinRoom(roomId);
@@ -123,16 +74,13 @@ async function joinRoom(roomId) {
   if (!snap.exists) return alert("Room not found");
 
   const roomData = snap.data();
-  const userSnap = await db.collection("users")
-    .doc(auth.currentUser.email).get();
-
-  if (roomData.premium && !userSnap.data().premium) {
-    return alert("Premium room 🔒");
-  }
 
   currentRoom = roomId;
+
   document.getElementById("current-room").innerText =
     "Current Room: " + roomId;
+
+  loadRoomAdminPanel(roomData);
 
   if (unsubscribe) unsubscribe();
 
@@ -154,6 +102,48 @@ async function joinRoom(roomId) {
 
       chatBox.scrollTop = chatBox.scrollHeight;
     });
+}
+
+// ================= ROOM ADMIN PANEL =================
+
+function loadRoomAdminPanel(roomData) {
+
+  const panel = document.getElementById("admin-panel");
+
+  if (roomData.createdBy !== auth.currentUser.email) {
+    panel.innerHTML = "";
+    return;
+  }
+
+  panel.innerHTML = `
+    <h3>Room Admin Panel</h3>
+    <button onclick="deleteRoom()">Delete Room</button>
+    <button onclick="togglePremiumRoom()">Toggle Premium Room</button>
+  `;
+}
+
+async function deleteRoom() {
+  if (!currentRoom) return;
+
+  await db.collection("rooms").doc(currentRoom).delete();
+
+  alert("Room deleted");
+  document.getElementById("chat-box").innerHTML = "";
+  document.getElementById("admin-panel").innerHTML = "";
+  currentRoom = null;
+}
+
+async function togglePremiumRoom() {
+  const roomRef = db.collection("rooms").doc(currentRoom);
+  const snap = await roomRef.get();
+
+  const currentStatus = snap.data().premium;
+
+  await roomRef.update({
+    premium: !currentStatus
+  });
+
+  alert("Premium status changed");
 }
 
 // ================= SEND MESSAGE =================
