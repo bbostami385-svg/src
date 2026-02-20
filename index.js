@@ -1,8 +1,7 @@
 // ===============================
-// Bayojid AI - FINAL Frontend
+// Bayojid AI - GROUP CHAT VERSION (FINAL)
 // ===============================
 
-// 🔹 Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyBYpQsXTHmvq0bvBYF2zKUrxdMEDoEs7qw",
   authDomain: "bayojidaichat.firebaseapp.com",
@@ -17,27 +16,22 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// 🔹 Backend URL (Only change this if needed)
 const API_BASE = "https://src-4-a535.onrender.com";
 
+let currentRoom = null;
+
 // ===============================
-// 🔐 AUTH SECTION
+// AUTH
 // ===============================
 
 function signup() {
-  const email = emailInput().value;
-  const password = passwordInput().value;
-
-  auth.createUserWithEmailAndPassword(email, password)
+  auth.createUserWithEmailAndPassword(emailInput().value, passwordInput().value)
     .then(() => alert("Signup Successful ✅"))
     .catch(err => alert(err.message));
 }
 
 function login() {
-  const email = emailInput().value;
-  const password = passwordInput().value;
-
-  auth.signInWithEmailAndPassword(email, password)
+  auth.signInWithEmailAndPassword(emailInput().value, passwordInput().value)
     .then(() => alert("Login Successful ✅"))
     .catch(err => alert(err.message));
 }
@@ -46,75 +40,63 @@ function logout() {
   auth.signOut();
 }
 
-// ===============================
-// 👤 USER STATE
-// ===============================
-
 auth.onAuthStateChanged(user => {
-  const status = document.getElementById("user-status");
-
   if (user) {
-    status.innerText = "Logged in as: " + user.email;
-    loadUserData(user.email);
+    document.getElementById("user-status").innerText = "Logged in as: " + user.email;
+    joinRoom("global-room"); // default public room
   } else {
-    status.innerText = "Not logged in";
+    document.getElementById("user-status").innerText = "Not logged in";
     document.getElementById("chat-box").innerHTML = "";
   }
 });
 
 // ===============================
-// 💾 LOAD USER DATA
+// JOIN ROOM
 // ===============================
 
-async function loadUserData(email) {
-  const chatBox = document.getElementById("chat-box");
-  chatBox.innerHTML = "";
+async function joinRoom(roomId) {
+  currentRoom = roomId;
 
-  const snapshot = await db.collection("users").doc(email).get();
+  const roomRef = db.collection("rooms").doc(roomId);
+  const roomDoc = await roomRef.get();
 
-  if (!snapshot.exists) {
-    // First time user
-    await db.collection("users").doc(email).set({
-      freeUsage: 3600,
-      premium: false
+  if (!roomDoc.exists) {
+    await roomRef.set({
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdBy: auth.currentUser.email
     });
-    return;
   }
 
-  // Load chats
-  db.collection("chats")
-    .where("user", "==", email)
+  roomRef.collection("messages")
     .orderBy("timestamp")
-    .onSnapshot(snap => {
+    .onSnapshot(snapshot => {
+      const chatBox = document.getElementById("chat-box");
       chatBox.innerHTML = "";
-      snap.forEach(doc => {
+
+      snapshot.forEach(doc => {
         const data = doc.data();
         chatBox.innerHTML += `
-          <div><b>You:</b> ${data.message}</div>
-          <div><b>AI:</b> ${data.reply}</div>
+          <div><b>${data.sender}:</b> ${data.text}</div>
         `;
       });
+
       chatBox.scrollTop = chatBox.scrollHeight;
     });
 }
 
 // ===============================
-// 🌙 THEME TOGGLE
-// ===============================
-
-function toggleTheme() {
-  document.body.classList.toggle("light");
-}
-
-// ===============================
-// 💬 SEND MESSAGE
+// SEND MESSAGE
 // ===============================
 
 async function sendMessage() {
 
-  const user = auth.currentUser;
-  if (!user) {
-    alert("Please login first ❌");
+  if (!auth.currentUser) {
+    alert("Login first ❌");
+    return;
+  }
+
+  if (!currentRoom) {
+    alert("No room joined ❌");
     return;
   }
 
@@ -122,51 +104,44 @@ async function sendMessage() {
   const message = input.value;
   if (!message) return;
 
-  const userDoc = await db.collection("users").doc(user.email).get();
-  const userData = userDoc.data();
+  const roomRef = db.collection("rooms").doc(currentRoom);
 
-  if (!userData.premium && userData.freeUsage <= 0) {
-    alert("Free usage finished! Upgrade to Premium 🔥");
-    return;
-  }
+  // Save user message
+  await roomRef.collection("messages").add({
+    sender: auth.currentUser.email,
+    text: message,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  });
 
-  try {
-    const res = await fetch(`${API_BASE}/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message,
-        username: user.email
-      })
-    });
+  // AI Reply (Demo backend)
+  const res = await fetch(`${API_BASE}/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message })
+  });
 
-    const data = await res.json();
+  const data = await res.json();
 
-    // Save chat
-    await db.collection("chats").add({
-      user: user.email,
-      message: message,
-      reply: data.reply,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    // Reduce free usage
-    if (!userData.premium) {
-      await db.collection("users").doc(user.email).update({
-        freeUsage: userData.freeUsage - 1
-      });
-    }
-
-  } catch (err) {
-    document.getElementById("chat-box").innerHTML +=
-      `<div><b>System:</b> Cannot connect to backend</div>`;
-  }
+  // Save AI message
+  await roomRef.collection("messages").add({
+    sender: "Bayojid AI",
+    text: data.reply,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  });
 
   input.value = "";
 }
 
 // ===============================
-// 🔧 Helper
+// THEME
+// ===============================
+
+function toggleTheme() {
+  document.body.classList.toggle("light");
+}
+
+// ===============================
+// HELPERS
 // ===============================
 
 function emailInput() {
