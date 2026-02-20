@@ -1,98 +1,63 @@
-// Firebase config
-const firebaseConfig = {
-  apiKey: "AIzaSyBYpQsXTHmvq0bvBYF2zKUrxdMEDoEs7qw",
-  authDomain: "bayojidaichat.firebaseapp.com",
-  projectId: "bayojidaichat",
-  storageBucket: "bayojidaichat.firebasestorage.app",
-  messagingSenderId: "982053349033",
-  appId: "1:982053349033:web:b89d9c88b4516293bfebb8"
-};
+// server.js - Bayojid AI Backend (Real AI ready)
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+const express = require("express");
+const cors = require("cors");
+require("dotenv").config(); // Load .env
+const OpenAI = require("openai");
 
-// Signup/Login/Logout
-function signup() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-  auth.createUserWithEmailAndPassword(email, password)
-    .then(() => alert("Signup Successful ✅"))
-    .catch(err => alert(err.message));
-}
+const app = express();
+app.use(cors());
+app.use(express.json());
 
-function login() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-  auth.signInWithEmailAndPassword(email, password)
-    .then(() => alert("Login Successful ✅"))
-    .catch(err => alert(err.message));
-}
+// Initialize OpenAI
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
-function logout() { auth.signOut(); }
+// Root
+app.get("/", (req, res) => {
+  res.send("Bayojid AI Server is Running ✅");
+});
 
-auth.onAuthStateChanged(user => {
-  document.getElementById("user-status").innerText = user ? "Logged in as: " + user.email : "Not logged in";
-  
-  if(user){
-    // Load user's previous chats
-    db.collection("chats")
-      .where("user", "==", user.email)
-      .orderBy("timestamp")
-      .onSnapshot(snapshot => {
-        const chatBox = document.getElementById("chat-box");
-        chatBox.innerHTML = "";
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          chatBox.innerHTML += `
-            <div><b>You:</b> ${data.message}</div>
-            <div><b>AI:</b> ${data.reply}</div>
-          `;
-        });
-        chatBox.scrollTop = chatBox.scrollHeight;
-      });
+// Chat endpoint
+app.post("/chat", async (req, res) => {
+  try {
+    const { message, username } = req.body;
+    if (!message) return res.status(400).json({ error: "No message provided" });
+
+    // -----------------------------
+    // Demo mode (currently)
+    // Later: replace with real OpenAI call
+    // -----------------------------
+    let aiReply = `আমি এখন demo mode এ আছি। তুমি বলেছ: "${message}"`;
+
+    // Uncomment below lines to enable real GPT
+    /*
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: "You are Bayojid AI, a smart helpful assistant." },
+        { role: "user", content: message }
+      ]
+    });
+    aiReply = completion.choices[0].message.content;
+    */
+
+    res.json({ reply: aiReply });
+
+  } catch(err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
-// Theme toggle
-function toggleTheme() {
-  document.body.classList.toggle("light");
-}
+// Optional: Premium check (future-ready)
+app.post("/premium-check", (req, res) => {
+  const { username } = req.body;
+  const isPremium = false; // demo
+  res.json({ username, isPremium });
+});
 
-// Chat send
-const API_BASE = "https://src-4-a535.onrender.com"; // demo backend
-async function sendMessage() {
-  if (!auth.currentUser) { alert("Please login first ❌"); return; }
-
-  const input = document.getElementById("chat-input");
-  const message = input.value;
-  if (!message) return;
-
-  try {
-    const res = await fetch(`${API_BASE}/chat`, {
-      method: "POST",
-      headers: { "Content-Type":"application/json" },
-      body: JSON.stringify({ message, username: auth.currentUser.email })
-    });
-    const data = await res.json();
-
-    document.getElementById("chat-box").innerHTML += `
-      <div><b>You:</b> ${message}</div>
-      <div><b>AI:</b> ${data.reply}</div>
-    `;
-    document.getElementById("chat-box").scrollTop = document.getElementById("chat-box").scrollHeight;
-
-    // Save chat to Firestore
-    await db.collection("chats").add({
-      user: auth.currentUser.email,
-      message: message,
-      reply: data.reply,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-  } catch {
-    document.getElementById("chat-box").innerHTML += `<div><b>System:</b> Cannot connect to backend</div>`;
-  }
-
-  input.value="";
-}
+// PORT
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server started on port ${PORT} ✅`));
