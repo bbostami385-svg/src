@@ -6,7 +6,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-/* ======= SAME YOUR DESIGN ======= */
 body {
   margin: 0;
   font-family: Arial, sans-serif;
@@ -27,6 +26,10 @@ body {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+}
+
+.sidebar h3 {
+  margin-top: 0;
 }
 
 .sidebar input, .sidebar button {
@@ -122,6 +125,26 @@ video {
   margin: 5px;
   background: black;
 }
+
+/* Light mode */
+.light {
+  background: #f5f5f5;
+  color: black;
+}
+.light .sidebar,
+.light .header,
+.light .chat-input-area {
+  background: #e2e8f0;
+}
+.light .chat-box {
+  background: #f5f5f5;
+}
+.light .ai {
+  background: #cbd5e1;
+}
+.light .user {
+  background: #3b82f6;
+}
 </style>
 </head>
 
@@ -136,9 +159,9 @@ video {
     <input type="email" id="email" placeholder="Email">
     <input type="password" id="password" placeholder="Password">
 
-    <button onclick="signup()">Signup</button>
-    <button onclick="login()">Login</button>
-    <button onclick="logout()">Logout</button>
+    <button id="signupBtn" onclick="signup()">Signup</button>
+    <button id="loginBtn" onclick="login()">Login</button>
+    <button id="logoutBtn" onclick="logout()">Logout</button>
 
     <hr>
 
@@ -190,10 +213,10 @@ video {
     <div id="typing-status" class="typing-indicator"></div>
 
     <div class="chat-input-area">
-      <input type="text" id="chat-input" placeholder="Type a message..." 
-             oninput="setTyping(true)" 
+      <input type="text" id="chat-input" placeholder="Type a message..."
+             oninput="setTyping(true)"
              onblur="setTyping(false)">
-      <button onclick="sendMessage()">Send</button>
+      <button id="sendBtn" onclick="sendMessage()">Send</button>
     </div>
 
     <!-- Video Area -->
@@ -212,6 +235,7 @@ video {
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
 <!-- JS Files -->
+<script src="firebaseConfig.js"></script>
 <script src="index.js"></script>
 <script src="index_searchHistory.js"></script>
 <script src="index_typingIndicator.js"></script>
