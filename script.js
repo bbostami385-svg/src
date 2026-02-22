@@ -2,6 +2,9 @@ const API_URL = "https://src-4-a535.onrender.com/chat";
 
 let chatHistory = [];
 
+// Random simple user ID (Later Firebase UID use করবে)
+const userId = "free_user_001";
+
 sendBtn.addEventListener("click", async () => {
   const message = messageInput.value.trim();
   if (!message) return;
@@ -17,7 +20,8 @@ sendBtn.addEventListener("click", async () => {
       },
       body: JSON.stringify({
         message: message,
-        history: chatHistory
+        history: chatHistory,
+        userId: userId
       })
     });
 
@@ -26,7 +30,7 @@ sendBtn.addEventListener("click", async () => {
     if (data.reply) {
       appendMessage("AI", data.reply);
 
-      // Save memory
+      // Save local memory
       chatHistory.push({ role: "user", content: message });
       chatHistory.push({ role: "assistant", content: data.reply });
 
@@ -35,6 +39,6 @@ sendBtn.addEventListener("click", async () => {
     }
 
   } catch (err) {
-    appendMessage("System", "⚠ Backend connection failed");
+    appendMessage("System", "⚠ Error connecting to AI backend");
   }
 });
